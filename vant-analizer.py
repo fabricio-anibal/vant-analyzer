@@ -51,7 +51,7 @@ def cria_grafo():
     plt.show()
 
 class Graph:
-    def __init__(self, nodes, edges):
+    def _init_(self, nodes, edges):
         self.nodes = nodes
         self.edges = edges
 
@@ -81,31 +81,35 @@ class Graph:
 
         plt.show()
 
-def plotMedias(medias):
+def plot(values, title, filename):
     # Sort medias by valueMed (first element of the tuple)
-    medias.sort(key=lambda x: float(x[0]))
-    valueMeds, num_nodes = zip(*medias)
-    valueMeds = [float(v) for v in valueMeds]  # Convert elements to floats
+    values.sort(key=lambda x: float(x[0]))
+    value, num_nodes = zip(*values)
+    value = [float(v) for v in value]  # Convert elements to floats
     plt.figure(figsize=(10, 6))
-    plt.bar(num_nodes, valueMeds, color='b', alpha=0.6, label='Bar')
-    plt.plot(num_nodes, valueMeds, color='r', marker='o', label='Line')
+    plt.bar(num_nodes, value, color='b', alpha=0.6, label='Bar')
+    plt.plot(num_nodes, value, color='r', marker='o', label='Line')
 
     # Annotate the points with exact values
-    for i, v in enumerate(valueMeds):
-        plt.text(num_nodes[i], v + 0.03 * max(valueMeds), f'{v:.2f}', ha='center', va='bottom', fontsize=7, color='black')
+    for i, v in enumerate(value):
+        plt.text(num_nodes[i], v + 0.03 * max(value), f'({num_nodes[i]}, {v:.2f})', ha='center', va='bottom', fontsize=7, color='black')
 
     plt.xlabel('Number of Nodes')
     plt.ylabel('Average Value (valueMed)')
     plt.title('Average Values vs Number of Nodes')
-    plt.ylim(0, max(valueMeds) * 1.1)  # Ensure y-axis starts at 0 and add some padding on top
+    plt.ylim(0, max(value) * 1.1)  # Ensure y-axis starts at 0 and add some padding on top
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.legend()
+    plt.title(title)
+    plt.savefig(os.path.join("./results", filename))
     plt.show()
 
 def processRandomResults():
     randomResults = listar_arquivos(resultsRandomDir)
 
     medias = []
+    minimos = []
+    maximos = []
 
     for randomResult in randomResults:
         with open(randomResult, 'r') as file:
@@ -132,11 +136,13 @@ def processRandomResults():
                     if match:
                         minimo = match.group(1)
                         valueMin = match.group(2)
+                        minimos.append((valueMin, len(nodes)))
                 elif line.startswith("Maximo: "):
                     match = re.search(r'Maximo: \[(\d+)\] ([\d.]+)', line)
                     if match:
                         maximo = match.group(1)
                         valueMax = match.group(2)
+                        maximos.append((valueMax, len(nodes)))
                 elif line.startswith("Media: "):
                     match = re.search(r'Media: \[(\d+)\] ([\d.]+)', line)
                     if match:
@@ -146,12 +152,17 @@ def processRandomResults():
 
             #graph = Graph(nodes, edges)
             #graph.draw()
-    plotMedias(medias)
+    #plot(medias)
+    plot(medias, "Average Values vs Number of Nodes for the Random Algorithm", "average_values_vs_number_of_nodes_random_algorithm.png")
+    plot(minimos, "Minimum Values vs Number of Nodes for the Random Algorithm", "minimum_values_vs_number_of_nodes_random_algorithm.png")
+    plot(maximos, "Maximum Values vs Number of Nodes for the Random Algorithm", "maximum_values_vs_number_of_nodes_random_algorithm.png")
 
 def processCentroideResults():
     centroideResults = listar_arquivos(resultsCentroideDir)
 
     medias = []
+    minimos = []
+    maximos = []
 
     for centroideResult in centroideResults:
         with open(centroideResult, 'r') as file:
@@ -178,11 +189,13 @@ def processCentroideResults():
                     if match:
                         minimo = match.group(1)
                         valueMin = match.group(2)
+                        minimos.append((valueMin, len(nodes)))
                 elif line.startswith("Maximo: "):
                     match = re.search(r'Maximo: \[(\d+)\] ([\d.]+)', line)
                     if match:
                         maximo = match.group(1)
                         valueMax = match.group(2)
+                        maximos.append((valueMax, len(nodes)))
                 elif line.startswith("Media: "):
                     match = re.search(r'Media: \[(\d+)\] ([\d.]+)', line)
                     if match:
@@ -192,7 +205,9 @@ def processCentroideResults():
 
             #graph = Graph(nodes, edges)
             #graph.draw()
-    plotMedias(medias)
+    plot(medias, "Average Values vs Number of Nodes for the Centroid Algorithm", "average_values_vs_number_of_nodes_centroid_algorithm.png")
+    plot(minimos, "Minimum Values vs Number of Nodes for the Centroid Algorithm", "minimum_values_vs_number_of_nodes_centroid_algorithm.png")
+    plot(maximos, "Maximum Values vs Number of Nodes for the Centroid Algorithm", "maximum_values_vs_number_of_nodes_centroid_algorithm.png")
 
 processCentroideResults()
 processRandomResults()
