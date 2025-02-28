@@ -71,28 +71,60 @@ class Graph:
 
         plt.show()
 
-def plot(values, title, filename):
-    # Sort medias by valueMed (first element of the tuple)
-    values.sort(key=lambda x: float(x[0]))
-    value, num_nodes = zip(*values)
-    value = [float(v) for v in value]  # Convert elements to floats
-    plt.figure(figsize=(10, 6))
-    plt.bar(num_nodes, value, color='b', alpha=0.6, label='Bar')
-    plt.plot(num_nodes, value, color='r', marker='o', label='Line')
+def plot(values1, values2, title, filename, values1Lable, values2Lable):
+    # Sort values1 and values2 by num_nodes (second element of the tuple)
+    values1.sort(key=lambda x: int(x[1]))
+    values2.sort(key=lambda x: int(x[1]))
 
-    # Annotate the points with exact values
-    for i, v in enumerate(value):
-        plt.text(num_nodes[i], v + 0.03 * max(value), f'({num_nodes[i]}, {v:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+    value1, num_nodes1 = zip(*values1)
+    value2, num_nodes2 = zip(*values2)
+
+    value1 = [float(v) for v in value1]  # Convert elements to floats
+    value2 = [float(v) for v in value2]  # Convert elements to floats
+
+    plt.figure(figsize=(10, 6))
+
+    # Plot values1
+    plt.plot(num_nodes1, value1, color='r', marker='o', label=values1Lable)
+    for i, v in enumerate(value1):
+        plt.text(num_nodes1[i], v - 0.1 * max(value1), f'({num_nodes1[i]}, {v:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+
+    # Plot values2
+    plt.plot(num_nodes2, value2, color='b', marker='o', label=values2Lable)
+    for i, v in enumerate(value2):
+        plt.text(num_nodes2[i], v + 0.1 * max(value2), f'({num_nodes2[i]}, {v:.2f})', ha='center', va='top', fontsize=7, color='black')
 
     plt.xlabel('Number of Nodes')
     plt.ylabel('Average Value (valueMed)')
-    plt.title('Average Values vs Number of Nodes')
-    plt.ylim(0, max(value) * 1.1)  # Ensure y-axis starts at 0 and add some padding on top
+    plt.title(title)
+    plt.ylim(0, max(max(value1), max(value2)) * 1.1)  
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.legend()
-    plt.title(title)
     plt.savefig(os.path.join("./results", filename))
     plt.show()
+
+def consolidateResults(values):
+    values_zipped, num_nodes = zip(*values)
+
+    map_values = {}
+
+    for i, v in enumerate(num_nodes):
+        if v not in map_values:
+            map_values[v] = []
+        map_values[v].append(values_zipped[i])
+    
+    #print(map_values)
+
+    final = []
+
+    for key in map_values:
+        values_map = map_values[key]
+        values_map = [float(value) for value in values_map]
+        #print(values_map)
+        media = sum(values_map) / len(values_map)
+        final.append((media, key))
+    
+    return final
 
 def processRandomResults():
     randomResults = listar_arquivos(resultsRandomDir)
@@ -142,10 +174,18 @@ def processRandomResults():
 
             #graph = Graph(nodes, edges)
             #graph.draw()
-    #plot(medias)
-    plot(medias, "Average Values vs Number of Nodes for the Random Algorithm", "average_values_vs_number_of_nodes_random_algorithm.png")
-    plot(minimos, "Minimum Values vs Number of Nodes for the Random Algorithm", "minimum_values_vs_number_of_nodes_random_algorithm.png")
-    plot(maximos, "Maximum Values vs Number of Nodes for the Random Algorithm", "maximum_values_vs_number_of_nodes_random_algorithm.png")
+
+    medias = consolidateResults(medias)
+    minimos = consolidateResults(minimos)
+    maximos = consolidateResults(maximos)    
+    #plot(medias, "Average Values vs Number of Nodes for the Random Algorithm", "average_values_vs_number_of_nodes_random_algorithm.png")
+    #plot(minimos, "Minimum Values vs Number of Nodes for the Random Algorithm", "minimum_values_vs_number_of_nodes_random_algorithm.png")
+    #plot(maximos, "Maximum Values vs Number of Nodes for the Random Algorithm", "maximum_values_vs_number_of_nodes_random_algorithm.png")
+    return {
+        'medias': medias, 
+        'minimos': minimos, 
+        'maximos': maximos
+    }
 
 def processCentroideResults():
     centroideResults = listar_arquivos(resultsCentroideDir)
@@ -191,13 +231,27 @@ def processCentroideResults():
                     if match:
                         media = match.group(1)
                         valueMed = match.group(2)
+                        #print(valueMed)
                         medias.append((valueMed, len(nodes)))
 
             #graph = Graph(nodes, edges)
             #graph.draw()
-    plot(medias, "Average Values vs Number of Nodes for the Centroid Algorithm", "average_values_vs_number_of_nodes_centroid_algorithm.png")
-    plot(minimos, "Minimum Values vs Number of Nodes for the Centroid Algorithm", "minimum_values_vs_number_of_nodes_centroid_algorithm.png")
-    plot(maximos, "Maximum Values vs Number of Nodes for the Centroid Algorithm", "maximum_values_vs_number_of_nodes_centroid_algorithm.png")
+    
+    medias = consolidateResults(medias)
+    minimos = consolidateResults(minimos)
+    maximos = consolidateResults(maximos)
+    #plot(medias, "Average Values vs Number of Nodes for the Centroid Algorithm", "average_values_vs_number_of_nodes_centroid_algorithm.png")
+    #plot(minimos, "Minimum Values vs Number of Nodes for the Centroid Algorithm", "minimum_values_vs_number_of_nodes_centroid_algorithm.png")
+    #plot(maximos, "Maximum Values vs Number of Nodes for the Centroid Algorithm", "maximum_values_vs_number_of_nodes_centroid_algorithm.png")
+    return {
+        'medias': medias, 
+        'minimos': minimos, 
+        'maximos': maximos
+    }
 
-processCentroideResults()
-processRandomResults()
+result_centroide = processCentroideResults()
+result_random = processRandomResults()
+
+plot(result_centroide['medias'], result_random['medias'], "Average Values vs Number of Nodes for the Centroid Algorithm", "average_values_vs_number_of_nodes_centroid_algorithm.png", "centroide", "random")
+plot(result_centroide['minimos'], result_random['minimos'], "Minimum Values vs Number of Nodes for the Centroid Algorithm", "minimum_values_vs_number_of_nodes_centroid_algorithm.png", "centroide", "random")
+plot(result_centroide['maximos'], result_random['maximos'], "Maximum Values vs Number of Nodes for the Centroid Algorithm", "maximum_values_vs_number_of_nodes_centroid_algorithm.png", "centroide", "random")
