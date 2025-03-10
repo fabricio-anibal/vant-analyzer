@@ -100,7 +100,7 @@ def plot(values1, values2, title, filename, values1Lable, values2Lable):
     plt.ylim(0, max(max(value1), max(value2)) * 1.1)  
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.legend()
-    plt.savefig(os.path.join("./results", filename))
+    plt.savefig(os.path.join("results", filename))
     plt.show()
 
 def consolidateResults(values):
@@ -252,6 +252,6 @@ def processCentroideResults():
 result_centroide = processCentroideResults()
 result_random = processRandomResults()
 
-plot(result_centroide['medias'], result_random['medias'], "Average Values vs Number of Nodes for the Centroid Algorithm", "average_values_vs_number_of_nodes_centroid_algorithm.png", "centroide", "random")
-plot(result_centroide['minimos'], result_random['minimos'], "Minimum Values vs Number of Nodes for the Centroid Algorithm", "minimum_values_vs_number_of_nodes_centroid_algorithm.png", "centroide", "random")
-plot(result_centroide['maximos'], result_random['maximos'], "Maximum Values vs Number of Nodes for the Centroid Algorithm", "maximum_values_vs_number_of_nodes_centroid_algorithm.png", "centroide", "random")
+plot(result_centroide['medias'], result_random['medias'], "Average Time vs Number of Nodes", "average_time_vs_number_of_nodes.png", "centroide", "random")
+plot(result_centroide['minimos'], result_random['minimos'], "Minimum Time vs Number of Nodes", "minimum_time_vs_number_of_nodes.png", "centroide", "random")
+plot(result_centroide['maximos'], result_random['maximos'], "Maximum TIme vs Number of Nodes", "maximum_time_vs_number_of_nodes.png", "centroide", "random")
