@@ -1,12 +1,14 @@
+import shutil
+
 resultsRandomDir = "../vant-simulator/results/random"
 resultsCentroideDir = "../vant-simulator/results/centroide"
+dirPrefix = "../vant-simulator"
 
-import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import re
-from mpl_toolkits.mplot3d import Axes3D
+from collections import defaultdict
 
 def listar_arquivos(diretorio):
     arquivos = []
@@ -15,39 +17,18 @@ def listar_arquivos(diretorio):
             arquivos.append(os.path.join(root, file))
     return arquivos
 
-def cria_grafo():
-    # Criar um grafo
-    G = nx.Graph()
-
-    nodes = {i: (np.random.rand(), np.random.rand(), np.random.rand()) for i in range(1, 6)}
-    G.add_nodes_from(nodes.keys())
-
-    edges = [(1, 2), (1, 3), (2, 4), (3, 5), (4, 5)]
-    G.add_edges_from(edges)
-
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection='3d')
-
-    for node, (x, y, z) in nodes.items():
-        ax.scatter(x, y, z, color='lightblue', s=200)
-        ax.text(x, y, z, str(node), color='black', fontsize=12, ha='center')
-
-    for edge in edges:
-        x_vals = [nodes[edge[0]][0], nodes[edge[1]][0]]
-        y_vals = [nodes[edge[0]][1], nodes[edge[1]][1]]
-        z_vals = [nodes[edge[0]][2], nodes[edge[1]][2]]
-        ax.plot(x_vals, y_vals, z_vals, color='gray')
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-
-    plt.show()
-
 class Graph:
-    def _init_(self, nodes, edges):
+    def __init__(self, nodes, edges):
         self.nodes = nodes
         self.edges = edges
+        self.remove_duplicated_edges()
+
+    def remove_duplicated_edges(self):
+        unique_edges = set()
+        for edge in self.edges:
+            if edge[0] != edge[1]:
+                unique_edges.add(tuple(sorted(edge)))
+        self.edges = list(unique_edges)
 
     def draw(self):
         fig = plt.figure(figsize=(8, 6))
@@ -71,7 +52,25 @@ class Graph:
 
         plt.show()
 
-def plot(values1, values2, title, filename, values1Lable, values2Lable):
+    def calculate_density(self):
+        num_edges = len(self.edges)
+        num_nodes = len(self.nodes)
+        max_possible_edges = num_nodes * (num_nodes - 1) / 2
+        density = num_edges / max_possible_edges
+        return density
+
+    def calculate_density_without_node(self, node):
+        filtered_edges = [edge for edge in self.edges if node[0] not in edge]
+        filtered_nodes = [n for n in self.nodes if n != node]
+
+        num_edges = len(filtered_edges)
+        num_nodes = len(filtered_nodes)
+
+        max_possible_edges = num_nodes * (num_nodes - 1) / 2
+        density = num_edges / max_possible_edges
+        return density
+
+def plot(pasta, values1, values2, title, filename, values1Lable, values2Lable):
     # Sort values1 and values2 by num_nodes (second element of the tuple)
     values1.sort(key=lambda x: int(x[1]))
     values2.sort(key=lambda x: int(x[1]))
@@ -100,8 +99,57 @@ def plot(values1, values2, title, filename, values1Lable, values2Lable):
     plt.ylim(0, max(max(value1), max(value2)) * 1.1)  
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.legend()
-    plt.savefig(os.path.join("results", filename))
-    plt.show()
+
+    plt.savefig(os.path.join(pasta, filename))
+    #plt.show()
+
+def agrupar_e_calcular_media(dados):
+    grupos = defaultdict(list)
+    for qtd_drones, densidade in dados:
+        grupos[qtd_drones].append(densidade)
+
+    # Retorna lista de tuplas: (quantidade_drones, média_densidade)
+    return [(qtd, sum(densidades) / len(densidades)) for qtd, densidades in sorted(grupos.items())]
+
+
+def plot_density_comparison(pasta, current, previous, filename, title):
+    # Agrupa e calcula média
+    current_avg = agrupar_e_calcular_media(current)
+    previous_avg = agrupar_e_calcular_media(previous)
+
+    x_labels = [x[0] for x in current_avg]
+    y_current = [x[1] for x in current_avg]
+    y_previous = [x[1] for x in previous_avg]
+
+    x = np.arange(len(x_labels))  # multiplica por 2 para dar mais espaço entre os grupos
+    width = 0.45
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(x - width/2, y_previous, width, label='Densidade Anterior', color='skyblue')
+    ax.bar(x + width/2, y_current, width, label='Densidade Atual', color='orange')
+
+    ax.set_xlabel('Quantidade de Drones')
+    ax.set_ylabel('Densidade Média')
+    ax.set_title(title)
+    ax.set_xticks(x)
+    ax.set_xticklabels(x_labels)
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.5)
+
+    minimo = min(min(y_previous), min(y_current))
+
+    ax.set_ylim(minimo-0.1, 1.1)  # ou qualquer faixa que faça sentido para seus dados
+
+    bars_prev = ax.bar(x - width/2, y_previous, width, label='Densidade Anterior', color='skyblue')
+    bars_curr = ax.bar(x + width/2, y_current, width, label='Densidade Atual', color='red')
+
+    # Adiciona os rótulos nas barras com padding
+    ax.bar_label(bars_prev, fmt='%.3f', padding=5, fontsize=10)  # Ajustando tamanho e padding
+    ax.bar_label(bars_curr, fmt='%.3f', padding=5, fontsize=10)
+
+    plt.savefig(os.path.join(pasta, filename))
+    plt.tight_layout()
+    #plt.show()
 
 def consolidateResults(values):
     values_zipped, num_nodes = zip(*values)
@@ -126,18 +174,22 @@ def consolidateResults(values):
     
     return final
 
-def processRandomResults():
-    randomResults = listar_arquivos(resultsRandomDir)
+def processRandomResults(pasta):
+    randomResults = listar_arquivos(dirPrefix + "/" + pasta + "/random")
 
     medias = []
     minimos = []
     maximos = []
+    densidade_anterior = []
+    densidade = []
+    transmition = []
 
     for randomResult in randomResults:
         with open(randomResult, 'r') as file:
             lines = file.readlines()
             edges = []
             nodes = []
+            transmitionAux = []
             node = None
             for line in lines:
                 if line.startswith("Node"):
@@ -149,56 +201,64 @@ def processRandomResults():
                         z = float(match.group(4))
                         nodes.append((node, (x, y, z)))
                 elif line.startswith("  -> Node "):
-                    match = re.search(r'  -> Node (\d+), Weight', line)
+                    match = re.search(r'  -> Node (\d+), Weight: ([\d.]+), TransmitionRate: ([\d.]+)', line)
                     if match:
                         nodeDestino = match.group(1)
                         edges.append((node, nodeDestino))
+                        peso = match.group(3)
+                        transmitionAux.append(peso)
                 elif line.startswith("Minimo: "):
                     match = re.search(r'Minimo: \[(\d+)\] ([\d.]+)', line)
                     if match:
-                        minimo = match.group(1)
                         valueMin = match.group(2)
                         minimos.append((valueMin, len(nodes)))
                 elif line.startswith("Maximo: "):
                     match = re.search(r'Maximo: \[(\d+)\] ([\d.]+)', line)
                     if match:
-                        maximo = match.group(1)
                         valueMax = match.group(2)
                         maximos.append((valueMax, len(nodes)))
                 elif line.startswith("Media: "):
                     match = re.search(r'Media: \[(\d+)\] ([\d.]+)', line)
                     if match:
-                        media = match.group(1)
                         valueMed = match.group(2)
                         medias.append((valueMed, len(nodes)))
 
-            #graph = Graph(nodes, edges)
-            #graph.draw()
+            graph = Graph(nodes, edges)
+            densidade_anterior.append((len(nodes), graph.calculate_density_without_node(max(nodes))))
+            densidade.append((len(nodes), graph.calculate_density()))
+            pesoMedio = sum([float(peso) for peso in transmitionAux]) / len(transmitionAux)
+            transmition.append((pesoMedio, len(nodes)))
 
     medias = consolidateResults(medias)
     minimos = consolidateResults(minimos)
-    maximos = consolidateResults(maximos)    
-    #plot(medias, "Average Values vs Number of Nodes for the Random Algorithm", "average_values_vs_number_of_nodes_random_algorithm.png")
-    #plot(minimos, "Minimum Values vs Number of Nodes for the Random Algorithm", "minimum_values_vs_number_of_nodes_random_algorithm.png")
-    #plot(maximos, "Maximum Values vs Number of Nodes for the Random Algorithm", "maximum_values_vs_number_of_nodes_random_algorithm.png")
+    maximos = consolidateResults(maximos)
+    transmition = consolidateResults(transmition)
+
     return {
-        'medias': medias, 
-        'minimos': minimos, 
-        'maximos': maximos
+        'medias': medias,
+        'minimos': minimos,
+        'maximos': maximos,
+        'densidade': densidade,
+        'densidade_anterior' : densidade_anterior,
+        'transmition': transmition
     }
 
-def processCentroideResults():
-    centroideResults = listar_arquivos(resultsCentroideDir)
+def processCentroideResults(pasta):
+    centroideResults = listar_arquivos(dirPrefix + "/" + pasta + "/centroide")
 
     medias = []
     minimos = []
     maximos = []
+    densidade_anterior = []
+    densidade = []
+    transmition = []
 
     for centroideResult in centroideResults:
         with open(centroideResult, 'r') as file:
             lines = file.readlines()
             edges = []
             nodes = []
+            transmitionAux = []
             node = None
             for line in lines:
                 if line.startswith("Node"):
@@ -210,48 +270,76 @@ def processCentroideResults():
                         z = float(match.group(4))
                         nodes.append((node, (x, y, z)))
                 elif line.startswith("  -> Node "):
-                    match = re.search(r'  -> Node (\d+), Weight', line)
+                    match = re.search(r'  -> Node (\d+), Weight: ([\d.]+), TransmitionRate: ([\d.]+)', line)
                     if match:
                         nodeDestino = match.group(1)
                         edges.append((node, nodeDestino))
+                        peso = match.group(3)
+                        transmitionAux.append(peso)
                 elif line.startswith("Minimo: "):
                     match = re.search(r'Minimo: \[(\d+)\] ([\d.]+)', line)
                     if match:
-                        minimo = match.group(1)
                         valueMin = match.group(2)
                         minimos.append((valueMin, len(nodes)))
                 elif line.startswith("Maximo: "):
                     match = re.search(r'Maximo: \[(\d+)\] ([\d.]+)', line)
                     if match:
-                        maximo = match.group(1)
                         valueMax = match.group(2)
                         maximos.append((valueMax, len(nodes)))
                 elif line.startswith("Media: "):
                     match = re.search(r'Media: \[(\d+)\] ([\d.]+)', line)
                     if match:
-                        media = match.group(1)
                         valueMed = match.group(2)
-                        #print(valueMed)
                         medias.append((valueMed, len(nodes)))
 
-            #graph = Graph(nodes, edges)
-            #graph.draw()
+            graph = Graph(nodes, edges)
+            densidade_anterior.append((len(nodes), graph.calculate_density_without_node(max(nodes))))
+            densidade.append((len(nodes), graph.calculate_density()))
+            pesoMedio = sum([float(peso) for peso in transmitionAux]) / len(transmitionAux)
+            transmition.append((pesoMedio, len(nodes)))
     
     medias = consolidateResults(medias)
     minimos = consolidateResults(minimos)
     maximos = consolidateResults(maximos)
-    #plot(medias, "Average Values vs Number of Nodes for the Centroid Algorithm", "average_values_vs_number_of_nodes_centroid_algorithm.png")
-    #plot(minimos, "Minimum Values vs Number of Nodes for the Centroid Algorithm", "minimum_values_vs_number_of_nodes_centroid_algorithm.png")
-    #plot(maximos, "Maximum Values vs Number of Nodes for the Centroid Algorithm", "maximum_values_vs_number_of_nodes_centroid_algorithm.png")
+    transmition = consolidateResults(transmition)
+
     return {
         'medias': medias, 
         'minimos': minimos, 
-        'maximos': maximos
+        'maximos': maximos,
+        'densidade': densidade,
+        'densidade_anterior' : densidade_anterior,
+        'transmition': transmition
     }
 
-result_centroide = processCentroideResults()
-result_random = processRandomResults()
+pastas = [d for d in os.listdir(dirPrefix) if d.startswith('results')]
 
-plot(result_centroide['medias'], result_random['medias'], "Average Time vs Number of Nodes", "average_time_vs_number_of_nodes.png", "centroide", "random")
-plot(result_centroide['minimos'], result_random['minimos'], "Minimum Time vs Number of Nodes", "minimum_time_vs_number_of_nodes.png", "centroide", "random")
-plot(result_centroide['maximos'], result_random['maximos'], "Maximum TIme vs Number of Nodes", "maximum_time_vs_number_of_nodes.png", "centroide", "random")
+print(pastas)
+
+for pasta in pastas:
+    result_centroide = processCentroideResults(pasta)
+    result_random = processRandomResults(pasta)
+
+    shutil.rmtree(pasta)
+    os.mkdir(pasta)
+
+    plot(pasta, result_centroide['medias'], result_random['medias'], "Tempo médio vs Número de nós", "average_time_vs_number_of_nodes.png", "centroide", "random")
+    plot(pasta, result_centroide['minimos'], result_random['minimos'], "Tempo mínimo vs Número de nós", "minimum_time_vs_number_of_nodes.png", "centroide", "random")
+    plot(pasta, result_centroide['maximos'], result_random['maximos'], "Tempo máxmo vs Número de nós", "maximum_time_vs_number_of_nodes.png", "centroide", "random")
+
+    plot_density_comparison(pasta, result_centroide['densidade'], result_centroide['densidade_anterior'], "density_comparison_centroide.png", "Comparação de densidade Centroide")
+    plot_density_comparison(pasta, result_random['densidade'], result_random['densidade_anterior'], "density_comparison_random.png", "Comparação de densidade Random")
+
+    plot(pasta, result_centroide['transmition'], result_random['transmition'], "Taxa de transmissão média vs Número de nós", "average_transmission_rate_vs_number_of_nodes.png", "centroide", "random")
+
+#result_centroide = processCentroideResults()
+#result_random = processRandomResults()
+
+#plot(result_centroide['medias'], result_random['medias'], "Average Time vs Number of Nodes", "average_time_vs_number_of_nodes.png", "centroide", "random")
+#plot(result_centroide['minimos'], result_random['minimos'], "Minimum Time vs Number of Nodes", "minimum_time_vs_number_of_nodes.png", "centroide", "random")
+#plot(result_centroide['maximos'], result_random['maximos'], "Maximum TIme vs Number of Nodes", "maximum_time_vs_number_of_nodes.png", "centroide", "random")
+
+#plot_density_comparison(result_centroide['densidade'], result_centroide['densidade_anterior'], "density_comparison_centroide.png")
+#plot_density_comparison(result_random['densidade'], result_random['densidade_anterior'], "density_comparison_random.png")
+
+#plot(result_centroide['transmition'], result_random['transmition'], "Average Transmission Rate vs Number of Nodes", "average_transmission_rate_vs_number_of_nodes.png", "centroide", "random")
