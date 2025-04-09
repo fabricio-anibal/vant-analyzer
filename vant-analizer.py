@@ -70,6 +70,8 @@ class Graph:
         density = num_edges / max_possible_edges
         return density
 
+
+
 def plot(pasta, values1, values2, title, filename, values1Lable, values2Lable):
     # Sort values1 and values2 by num_nodes (second element of the tuple)
     values1.sort(key=lambda x: int(x[1]))
@@ -85,23 +87,43 @@ def plot(pasta, values1, values2, title, filename, values1Lable, values2Lable):
 
     # Plot values1
     plt.plot(num_nodes1, value1, color='r', marker='o', label=values1Lable)
-    for i, v in enumerate(value1):
-        plt.text(num_nodes1[i], v - 0.1 * max(value1), f'({num_nodes1[i]}, {v:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+    for i, (v1, n1) in enumerate(zip(value1, num_nodes1)):
+        # Verifica o valor correspondente em values2 para o mesmo num_nodes
+        idx2 = num_nodes2.index(n1)
+        v2 = value2[idx2]
+
+        # Determina se o valor de value1 ou value2 é maior e posiciona o rótulo
+        if v1 > v2:
+            plt.text(n1, v1 + 0.1 * max(value1), f'({n1}, {v1:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+            plt.text(n1, v2 - 0.1 * max(value2), f'({n1}, {v2:.2f})', ha='center', va='top', fontsize=7, color='black')
+        else:
+            plt.text(n1, v2 + 0.1 * max(value2), f'({n1}, {v2:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+            plt.text(n1, v1 - 0.1 * max(value1), f'({n1}, {v1:.2f})', ha='center', va='top', fontsize=7, color='black')
 
     # Plot values2
     plt.plot(num_nodes2, value2, color='b', marker='o', label=values2Lable)
-    for i, v in enumerate(value2):
-        plt.text(num_nodes2[i], v + 0.1 * max(value2), f'({num_nodes2[i]}, {v:.2f})', ha='center', va='top', fontsize=7, color='black')
+    for i, (v2, n2) in enumerate(zip(value2, num_nodes2)):
+        # Verifica o valor correspondente em values1 para o mesmo num_nodes
+        idx1 = num_nodes1.index(n2)
+        v1 = value1[idx1]
+
+        # Determina se o valor de value1 ou value2 é maior e posiciona o rótulo
+        if v2 > v1:
+            plt.text(n2, v2 + 0.1 * max(value2), f'({n2}, {v2:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+            plt.text(n2, v1 - 0.1 * max(value1), f'({n2}, {v1:.2f})', ha='center', va='top', fontsize=7, color='black')
+        else:
+            plt.text(n2, v1 + 0.1 * max(value1), f'({n2}, {v1:.2f})', ha='center', va='bottom', fontsize=7, color='black')
+            plt.text(n2, v2 - 0.1 * max(value2), f'({n2}, {v2:.2f})', ha='center', va='top', fontsize=7, color='black')
 
     plt.xlabel('Number of Nodes')
     plt.ylabel('Average Value (valueMed)')
     plt.title(title)
-    plt.ylim(0, max(max(value1), max(value2)) * 1.1)  
+    plt.ylim(0, max(max(value1), max(value2)) * 1.1)
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.legend()
 
     plt.savefig(os.path.join(pasta, filename))
-    #plt.show()
+    # plt.show()
 
 def agrupar_e_calcular_media(dados):
     grupos = defaultdict(list)
@@ -121,12 +143,12 @@ def plot_density_comparison(pasta, current, previous, filename, title):
     y_current = [x[1] for x in current_avg]
     y_previous = [x[1] for x in previous_avg]
 
-    x = np.arange(len(x_labels))  # multiplica por 2 para dar mais espaço entre os grupos
+    x = np.arange(len(x_labels))
     width = 0.45
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.bar(x - width/2, y_previous, width, label='Densidade Anterior', color='skyblue')
-    ax.bar(x + width/2, y_current, width, label='Densidade Atual', color='orange')
+    bars_prev = ax.bar(x - width/2, y_previous, width, label='Densidade Anterior', color='skyblue')
+    bars_curr = ax.bar(x + width/2, y_current, width, label='Densidade Atual', color='red')
 
     ax.set_xlabel('Quantidade de Drones')
     ax.set_ylabel('Densidade Média')
@@ -137,19 +159,40 @@ def plot_density_comparison(pasta, current, previous, filename, title):
     ax.grid(True, linestyle='--', alpha=0.5)
 
     minimo = min(min(y_previous), min(y_current))
+    ax.set_ylim(minimo - 0.1, 1.1)
 
-    ax.set_ylim(minimo-0.1, 1.1)  # ou qualquer faixa que faça sentido para seus dados
+    # Fonte adaptável
+    n_barras = len(x_labels)
+    fontsize = max(6, 12 - n_barras // 5)
 
-    bars_prev = ax.bar(x - width/2, y_previous, width, label='Densidade Anterior', color='skyblue')
-    bars_curr = ax.bar(x + width/2, y_current, width, label='Densidade Atual', color='red')
+    def add_vertical_labels(bars1, bars2):
+        for bar1, bar2 in zip(bars1, bars2):
+            h1 = bar1.get_height()
+            h2 = bar2.get_height()
+            offset = (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.01  # Deslocamento base
 
-    # Adiciona os rótulos nas barras com padding
-    ax.bar_label(bars_prev, fmt='%.3f', padding=5, fontsize=10)  # Ajustando tamanho e padding
-    ax.bar_label(bars_curr, fmt='%.3f', padding=5, fontsize=10)
+            # Adiciona os valores das barras em vertical (sempre em cima das barras)
+            ax.text(bar1.get_x() + bar1.get_width() / 2,
+                    h1 + offset,
+                    f'{h1:.3f}',
+                    ha='center',
+                    va='bottom',
+                    rotation=90,
+                    fontsize=fontsize)
 
-    plt.savefig(os.path.join(pasta, filename))
+            ax.text(bar2.get_x() + bar2.get_width() / 2,
+                    h2 + offset,
+                    f'{h2:.3f}',
+                    ha='center',
+                    va='bottom',
+                    rotation=90,
+                    fontsize=fontsize)
+
+    add_vertical_labels(bars_prev, bars_curr)
+
     plt.tight_layout()
-    #plt.show()
+    plt.savefig(os.path.join(pasta, filename))
+    # plt.show()
 
 def consolidateResults(values):
     values_zipped, num_nodes = zip(*values)
