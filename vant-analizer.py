@@ -126,7 +126,6 @@ def plot(pasta, values1, values2, title, filename, values1Lable, values2Lable):
     plt.close()
     # plt.show()
 
-
 def plotWithoutLable(pasta, values1, values2, title, filename, values1Lable, values2Lable):
     # Sort values1 and values2 by num_nodes (second element of the tuple)
     values1.sort(key=lambda x: int(x[1]))
@@ -198,8 +197,8 @@ def plot_density_comparison(pasta, current, previous, filename, title):
     width = 0.45
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    bars_prev = ax.bar(x - width/2, y_previous, width, label='Densidade Anterior', color='skyblue')
-    bars_curr = ax.bar(x + width/2, y_current, width, label='Densidade Atual', color='red')
+    bars_prev = ax.bar(x - width/2, y_previous, width, label='Aleatório', color='skyblue')
+    bars_curr = ax.bar(x + width/2, y_current, width, label='Centróide' ,color='red')
 
     ax.set_xlabel('Quantidade de Drones')
     ax.set_ylabel('Densidade Média')
@@ -422,8 +421,7 @@ for pasta in pastas:
     plot(pasta, result_centroide['minimos'], result_random['minimos'], "Tempo mínimo vs Número de nós", "minimum_time_vs_number_of_nodes.png", "centroide", "random")
     plot(pasta, result_centroide['maximos'], result_random['maximos'], "Tempo máxmo vs Número de nós", "maximum_time_vs_number_of_nodes.png", "centroide", "random")
 
-    plot_density_comparison(pasta, result_centroide['densidade'], result_centroide['densidade_anterior'], "density_comparison_centroide.png", "Comparação de densidade Centroide")
-    plot_density_comparison(pasta, result_random['densidade'], result_random['densidade_anterior'], "density_comparison_random.png", "Comparação de densidade Random")
+    plot_density_comparison(pasta, result_centroide['densidade'], result_random['densidade'], "density_comparison_centroidexrandom.png", "Comparação de densidade Centroide x Random")
 
     plotWithoutLable(pasta, result_centroide['transmition'], result_random['transmition'], "Taxa de transmissão média vs Número de nós", "average_transmission_rate_vs_number_of_nodes.png", "centroide", "random")
 
