@@ -115,15 +115,66 @@ def plot(pasta, values1, values2, title, filename, values1Lable, values2Lable):
             plt.text(n2, v1 + 0.1 * max(value1), f'({n2}, {v1:.2f})', ha='center', va='bottom', fontsize=7, color='black')
             plt.text(n2, v2 - 0.1 * max(value2), f'({n2}, {v2:.2f})', ha='center', va='top', fontsize=7, color='black')
 
-    plt.xlabel('Number of Nodes')
-    plt.ylabel('Average Value (valueMed)')
+    plt.xlabel('Número de nós')
+    plt.ylabel('Tempo médio das variações')
     plt.title(title)
     plt.ylim(0, max(max(value1), max(value2)) * 1.1)
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.legend()
 
     plt.savefig(os.path.join(pasta, filename))
+    plt.close()
     # plt.show()
+
+
+def plotWithoutLable(pasta, values1, values2, title, filename, values1Lable, values2Lable):
+    # Sort values1 and values2 by num_nodes (second element of the tuple)
+    values1.sort(key=lambda x: int(x[1]))
+    values2.sort(key=lambda x: int(x[1]))
+
+    value1, num_nodes1 = zip(*values1)
+    value2, num_nodes2 = zip(*values2)
+
+    value1 = [float(v) for v in value1]
+    value2 = [float(v) for v in value2]
+
+    plt.figure(figsize=(10, 6))
+
+    # Plot values1
+    plt.plot(num_nodes1, value1, color='r', marker='o', label=values1Lable)
+    #for v1, n1 in zip(value1, num_nodes1):
+    #    idx2 = num_nodes2.index(n1)
+    #    v2 = value2[idx2]
+    #    if v1 > v2:
+    #        plt.text(n1, v1 + 0.05 * (max(value1) - min(value1)), f'({n1}, {v1:.2f})',
+    #                 ha='center', va='bottom', fontsize=7, color='black')
+    #        plt.text(n1, v2 - 0.05 * (max(value2) - min(value2)), f'({n1}, {v2:.2f})',
+    #                 ha='center', va='top', fontsize=7, color='black')
+    #    else:
+    #        plt.text(n1, v2 + 0.05 * (max(value2) - min(value2)), f'({n1}, {v2:.2f})',
+    #                 ha='center', va='bottom', fontsize=7, color='black')
+    #        plt.text(n1, v1 - 0.05 * (max(value1) - min(value1)), f'({n1}, {v1:.2f})',
+    #                 ha='center', va='top', fontsize=7, color='black')
+
+    # Plot values2
+    plt.plot(num_nodes2, value2, color='b', marker='o', label=values2Lable)
+
+    # Define limites com base nos valores mínimos e máximos com margens
+    all_values = value1 + value2
+    min_val = min(all_values)
+    max_val = max(all_values)
+    margin = 0.05 * (max_val - min_val if max_val > min_val else 1)
+
+    plt.ylim(min_val - margin, max_val + margin)
+
+    plt.xlabel('Número de nós')
+    plt.ylabel('Taxa de transmissão média (bytes/segundo)')
+    plt.title(title)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    plt.legend()
+
+    plt.savefig(os.path.join(pasta, filename))
+    plt.close()
 
 def agrupar_e_calcular_media(dados):
     grupos = defaultdict(list)
@@ -192,6 +243,7 @@ def plot_density_comparison(pasta, current, previous, filename, title):
 
     plt.tight_layout()
     plt.savefig(os.path.join(pasta, filename))
+    plt.close()
     # plt.show()
 
 def consolidateResults(values):
@@ -373,7 +425,7 @@ for pasta in pastas:
     plot_density_comparison(pasta, result_centroide['densidade'], result_centroide['densidade_anterior'], "density_comparison_centroide.png", "Comparação de densidade Centroide")
     plot_density_comparison(pasta, result_random['densidade'], result_random['densidade_anterior'], "density_comparison_random.png", "Comparação de densidade Random")
 
-    plot(pasta, result_centroide['transmition'], result_random['transmition'], "Taxa de transmissão média vs Número de nós", "average_transmission_rate_vs_number_of_nodes.png", "centroide", "random")
+    plotWithoutLable(pasta, result_centroide['transmition'], result_random['transmition'], "Taxa de transmissão média vs Número de nós", "average_transmission_rate_vs_number_of_nodes.png", "centroide", "random")
 
 #result_centroide = processCentroideResults()
 #result_random = processRandomResults()
